@@ -1,14 +1,18 @@
 'use client';
 
 import { useState } from 'react';
+import { trackRestockNotifyRequested } from '@/lib/analytics';
 
 interface NotifyRestockFormProps {
   recordId: string;
   recordTitle: string;
+  artist: string;
 }
 
 export function NotifyRestockForm({
+  recordId,
   recordTitle,
+  artist,
 }: NotifyRestockFormProps): React.JSX.Element {
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
@@ -16,6 +20,11 @@ export function NotifyRestockForm({
   function handleSubmit(e: React.FormEvent): void {
     e.preventDefault();
     if (!email.trim()) return;
+    trackRestockNotifyRequested({
+      record_id: recordId,
+      record_title: recordTitle,
+      artist,
+    });
     setSubmitted(true);
   }
 

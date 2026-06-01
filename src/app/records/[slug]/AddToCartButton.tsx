@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useCart } from '@/lib/cart/context';
+import { trackRecordAddedToCart } from '@/lib/analytics';
 import type { Record } from '@/data/records';
 
 interface AddToCartButtonProps {
@@ -16,6 +17,13 @@ export function AddToCartButton({
 
   function handleClick(): void {
     addRecord(record);
+    trackRecordAddedToCart({
+      record_id: record.id,
+      record_title: record.title,
+      artist: record.artist,
+      price_usd: record.priceUsd,
+      currency: 'USD',
+    });
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);
   }

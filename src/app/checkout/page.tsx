@@ -1,16 +1,30 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useState } from 'react';
 import { useCart } from '@/lib/cart/context';
+import { trackCheckoutStarted, trackOrderCompleted } from '@/lib/analytics';
 
 const SHIPPING_USD = 6;
 
 export default function CheckoutPage(): React.JSX.Element {
   const router = useRouter();
-  const { items, subtotal, clearCart } = useCart();
+  const { items, subtotal, itemCount, clearCart } = useCart();
   const [submitting, setSubmitting] = useState(false);
+  const checkoutTracked = useRef(false);
+
+  useEffect(() => {
+    if (checkoutTracked.current || items.length === 0) return;
+    checkoutTracked.current = true;
+    trackCheckoutStarted({
+      cart_item_count: itemCount,
+      subtotal_usd: subtotal,
+      shipping_usd: SHIPPING_USD,
+      order_total_usd: subtotal + SHIPPING_USD,
+      record_ids: items.map((i) => i.recordId),
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (items.length === 0 && !submitting) {
     return (
@@ -31,6 +45,15 @@ export default function CheckoutPage(): React.JSX.Element {
   function handleSubmit(e: React.FormEvent): void {
     e.preventDefault();
     setSubmitting(true);
+    trackOrderCompleted({
+      order_id: crypto.randomUUID(),
+      cart_item_count: itemCount,
+      subtotal_usd: subtotal,
+      shipping_usd: SHIPPING_USD,
+      total_usd: total,
+      currency: 'USD',
+      record_ids: items.map((i) => i.recordId),
+    });
     setTimeout(() => {
       clearCart();
       router.push('/');
