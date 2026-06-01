@@ -1,10 +1,23 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useCart } from '@/lib/cart/context';
+import { trackCartViewed, trackRecordRemovedFromCart } from '@/lib/analytics';
 
 export default function CartPage(): React.JSX.Element {
-  const { items, subtotal, removeRecord } = useCart();
+  const { items, subtotal, itemCount, removeRecord } = useCart();
+  const cartViewedFired = useRef(false);
+
+  useEffect(() => {
+    if (cartViewedFired.current || items.length === 0) return;
+    cartViewedFired.current = true;
+    trackCartViewed({
+      cart_item_count: itemCount,
+      cart_total_usd: subtotal,
+      record_ids: items.map((i) => i.recordId),
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (items.length === 0) {
     return (
@@ -49,7 +62,16 @@ export default function CartPage(): React.JSX.Element {
               </div>
               <button
                 type="button"
-                onClick={() => removeRecord(item.recordId)}
+                onClick={() => {
+                  trackRecordRemovedFromCart({
+                    record_id: item.recordId,
+                    record_title: item.title,
+                    artist: item.artist,
+                    price_usd: item.priceUsd,
+                    quantity: item.quantity,
+                  });
+                  removeRecord(item.recordId);
+                }}
                 className="text-xs text-stone-500 hover:text-amber-200 transition"
                 aria-label={`Remove ${item.title} from cart`}
               >

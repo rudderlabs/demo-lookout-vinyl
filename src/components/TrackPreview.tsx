@@ -2,14 +2,16 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { formatDuration, type Track } from '@/data/records';
+import { trackTrackPreviewed } from '@/lib/analytics';
 
 const PREVIEW_MS = 10_000;
 
 interface TrackPreviewProps {
   track: Track;
+  recordId: string;
 }
 
-export function TrackPreview({ track }: TrackPreviewProps): React.JSX.Element {
+export function TrackPreview({ track, recordId }: TrackPreviewProps): React.JSX.Element {
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const startedAtRef = useRef<number | null>(null);
@@ -27,6 +29,13 @@ export function TrackPreview({ track }: TrackPreviewProps): React.JSX.Element {
       if (elapsed >= PREVIEW_MS) {
         setPlaying(false);
         setProgress(0);
+        trackTrackPreviewed({
+          record_id: recordId,
+          track_number: track.number,
+          track_title: track.title,
+          play_duration_ms: PREVIEW_MS,
+          completed: true,
+        });
         startedAtRef.current = null;
         return;
       }
@@ -37,10 +46,21 @@ export function TrackPreview({ track }: TrackPreviewProps): React.JSX.Element {
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
     };
-  }, [playing]);
+  }, [playing, recordId, track]);
 
   function handleToggle(): void {
     if (playing) {
+      const elapsed =
+        startedAtRef.current !== null
+          ? Math.round(performance.now() - startedAtRef.current)
+          : 0;
+      trackTrackPreviewed({
+        record_id: recordId,
+        track_number: track.number,
+        track_title: track.title,
+        play_duration_ms: elapsed,
+        completed: false,
+      });
       setPlaying(false);
       setProgress(0);
       startedAtRef.current = null;
