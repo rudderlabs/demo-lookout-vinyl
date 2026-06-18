@@ -4,6 +4,7 @@ import { RecordCover } from '@/components/RecordCover';
 import { TrackPreview } from '@/components/TrackPreview';
 import { NotifyRestockForm } from '@/components/NotifyRestockForm';
 import { AddToCartButton } from './AddToCartButton';
+import { RecordDetailAnalytics } from './RecordDetailAnalytics';
 
 export function generateStaticParams() {
   return records.map((record) => ({ slug: record.slug }));
@@ -22,6 +23,9 @@ export default async function RecordDetailPage({
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+      {/* Client island fires Record Viewed on mount */}
+      <RecordDetailAnalytics record={record} />
+
       <div>
         <RecordCover
           artist={record.artist}
@@ -50,7 +54,12 @@ export default async function RecordDetailPage({
         </div>
         <div className="mt-2 mb-8 border-t border-white/5">
           {record.tracks.map((track) => (
-            <TrackPreview key={track.number} track={track} />
+            <TrackPreview
+              key={track.number}
+              track={track}
+              recordId={record.id}
+              recordTitle={record.title}
+            />
           ))}
         </div>
 
