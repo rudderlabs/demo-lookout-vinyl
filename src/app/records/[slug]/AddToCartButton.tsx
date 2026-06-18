@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useCart } from '@/lib/cart/context';
+import { useRudderAnalytics, trackRecordAdded } from '@/lib/analytics';
 import type { Record } from '@/data/records';
 
 interface AddToCartButtonProps {
@@ -12,10 +13,20 @@ export function AddToCartButton({
   record,
 }: AddToCartButtonProps): React.JSX.Element {
   const { addRecord } = useCart();
+  const analytics = useRudderAnalytics();
   const [added, setAdded] = useState(false);
 
   function handleClick(): void {
     addRecord(record);
+    if (analytics) {
+      trackRecordAdded(analytics, {
+        record_id: record.id,
+        title: record.title,
+        artist: record.artist,
+        price_usd: record.priceUsd,
+        quantity: 1,
+      });
+    }
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);
   }

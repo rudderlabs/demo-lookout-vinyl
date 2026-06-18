@@ -1,10 +1,54 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useCart } from '@/lib/cart/context';
+import {
+  usePageTracking,
+  useRudderAnalytics,
+  trackCartViewed,
+  trackRecordRemoved,
+} from '@/lib/analytics';
+import { generateId } from '@/lib/utils';
 
 export default function CartPage(): React.JSX.Element {
   const { items, subtotal, removeRecord } = useCart();
+  const analytics = useRudderAnalytics();
+  const cartViewedFired = useRef(false);
+  const [cartId] = useState(() => generateId());
+
+  usePageTracking('Cart');
+
+  useEffect(() => {
+    if (!analytics || items.length === 0 || cartViewedFired.current) return;
+    cartViewedFired.current = true;
+    trackCartViewed(analytics, {
+      cart_id: cartId,
+      items: items.map((i) => ({
+        record_id: i.recordId,
+        title: i.title,
+        artist: i.artist,
+        price_usd: i.priceUsd,
+        quantity: i.quantity,
+      })),
+      subtotal_usd: subtotal,
+      item_count: items.reduce((s, i) => s + i.quantity, 0),
+    });
+  }, [analytics, items, subtotal, cartId]);
+
+  function handleRemove(recordId: string): void {
+    const item = items.find((i) => i.recordId === recordId);
+    removeRecord(recordId);
+    if (analytics && item) {
+      trackRecordRemoved(analytics, {
+        record_id: item.recordId,
+        title: item.title,
+        artist: item.artist,
+        price_usd: item.priceUsd,
+        quantity: item.quantity,
+      });
+    }
+  }
 
   if (items.length === 0) {
     return (
@@ -49,7 +93,7 @@ export default function CartPage(): React.JSX.Element {
               </div>
               <button
                 type="button"
-                onClick={() => removeRecord(item.recordId)}
+                onClick={() => handleRemove(item.recordId)}
                 className="text-xs text-stone-500 hover:text-amber-200 transition"
                 aria-label={`Remove ${item.title} from cart`}
               >

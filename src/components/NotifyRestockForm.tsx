@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRudderAnalytics, trackRestockNotifyRequested } from '@/lib/analytics';
 
 interface NotifyRestockFormProps {
   recordId: string;
@@ -8,14 +9,19 @@ interface NotifyRestockFormProps {
 }
 
 export function NotifyRestockForm({
+  recordId,
   recordTitle,
 }: NotifyRestockFormProps): React.JSX.Element {
+  const analytics = useRudderAnalytics();
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
   function handleSubmit(e: React.FormEvent): void {
     e.preventDefault();
     if (!email.trim()) return;
+    if (analytics) {
+      trackRestockNotifyRequested(analytics, { record_id: recordId, record_title: recordTitle });
+    }
     setSubmitted(true);
   }
 

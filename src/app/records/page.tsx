@@ -1,10 +1,12 @@
 import Link from 'next/link';
 import { records } from '@/data/records';
 import { RecordCover } from '@/components/RecordCover';
+import { RecordsAnalytics } from './RecordsAnalytics';
 
 export default function RecordsPage(): React.JSX.Element {
   return (
     <>
+      <RecordsAnalytics records={records} />
       <div className="text-xs uppercase tracking-[0.2em] text-amber-200/80 mb-4">
         The catalogue
       </div>

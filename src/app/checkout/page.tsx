@@ -1,16 +1,48 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useState } from 'react';
 import { useCart } from '@/lib/cart/context';
+import {
+  usePageTracking,
+  useRudderAnalytics,
+  trackCheckoutStarted,
+  trackOrderCompleted,
+} from '@/lib/analytics';
+import { generateId } from '@/lib/utils';
 
 const SHIPPING_USD = 6;
 
 export default function CheckoutPage(): React.JSX.Element {
   const router = useRouter();
   const { items, subtotal, clearCart } = useCart();
+  const analytics = useRudderAnalytics();
+  const checkoutStartedFired = useRef(false);
   const [submitting, setSubmitting] = useState(false);
+  const [orderId] = useState(() => generateId());
+
+  usePageTracking('Checkout');
+
+  const total = subtotal + SHIPPING_USD;
+
+  useEffect(() => {
+    if (!analytics || items.length === 0 || checkoutStartedFired.current) return;
+    checkoutStartedFired.current = true;
+    trackCheckoutStarted(analytics, {
+      order_id: orderId,
+      subtotal_usd: subtotal,
+      shipping_usd: SHIPPING_USD,
+      total_usd: total,
+      items: items.map((i) => ({
+        record_id: i.recordId,
+        title: i.title,
+        artist: i.artist,
+        price_usd: i.priceUsd,
+        quantity: i.quantity,
+      })),
+    });
+  }, [analytics, items, subtotal, total, orderId]);
 
   if (items.length === 0 && !submitting) {
     return (
@@ -26,11 +58,24 @@ export default function CheckoutPage(): React.JSX.Element {
     );
   }
 
-  const total = subtotal + SHIPPING_USD;
-
   function handleSubmit(e: React.FormEvent): void {
     e.preventDefault();
     setSubmitting(true);
+    if (analytics) {
+      trackOrderCompleted(analytics, {
+        order_id: orderId,
+        subtotal_usd: subtotal,
+        shipping_usd: SHIPPING_USD,
+        total_usd: total,
+        items: items.map((i) => ({
+          record_id: i.recordId,
+          title: i.title,
+          artist: i.artist,
+          price_usd: i.priceUsd,
+          quantity: i.quantity,
+        })),
+      });
+    }
     setTimeout(() => {
       clearCart();
       router.push('/');
@@ -121,10 +166,7 @@ export default function CheckoutPage(): React.JSX.Element {
         </div>
         <div className="mt-3 space-y-3">
           {items.map((item) => (
-            <div
-              key={item.recordId}
-              className="flex justify-between text-sm"
-            >
+            <div key={item.recordId} className="flex justify-between text-sm">
               <div className="text-stone-300">
                 {item.title}
                 <span className="text-stone-500"> &times; {item.quantity}</span>
